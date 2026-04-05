@@ -1,7 +1,7 @@
 from telegram import Update
 from telegram.ext import ContextTypes
 from src.utils.db_service import UserService
-from config import config
+from src.config import config
 
 
 async def is_admin(user_id: int) -> bool:

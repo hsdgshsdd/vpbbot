@@ -154,7 +154,7 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def tariff_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обработка выбора тарифа"""
-    from config import TARIFFS
+    from src.config import TARIFFS
     
     query = update.callback_query
     user_id = update.effective_user.id

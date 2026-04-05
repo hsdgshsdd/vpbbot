@@ -2,7 +2,7 @@ import aiohttp
 import asyncio
 from typing import Optional, Dict, Any, List
 from datetime import datetime, timedelta
-from config import config
+from src.config import config
 import logging
 
 logger = logging.getLogger(__name__)
