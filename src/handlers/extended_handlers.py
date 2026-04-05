@@ -136,9 +136,6 @@ async def confirm_regenerate_key_old(update: Update, context: ContextTypes.DEFAU
     
     # В реальной системе здесь должна быть логика переполучения ключа
     await query.answer("🔑 Новый ключ сгенерирован!", show_alert=True)
-    
-    # Переход обратно к ключам
-    await update.callback_query.data = 'update_keys'
 
 
 async def admin_users_add(update: Update, context: ContextTypes.DEFAULT_TYPE):
