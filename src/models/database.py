@@ -25,17 +25,14 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
 class User(Base):
-    """Модель пользователя в базе данных"""
+    """Модель пользователя - хранит только связь Telegram ↔ Marzneshin"""
     __tablename__ = "users"
     
     id = Column(Integer, primary_key=True)
     telegram_id = Column(Integer, unique=True, index=True)
-    username = Column(String, nullable=True)
+    username = Column(String, nullable=True, index=True)  # Marzneshin username
+    subscription_key = Column(String, nullable=True)  # API subscription key
     is_admin = Column(Boolean, default=False)
-    subscription_key = Column(String, nullable=True)
-    subscription_id = Column(Integer, nullable=True)
-    subscription_active = Column(Boolean, default=False)
-    subscription_expires_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     

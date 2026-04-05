@@ -195,14 +195,13 @@ async def confirm_create_user(update: Update, context: ContextTypes.DEFAULT_TYPE
         sub_key = created_user.get('key', username)
         subscription_url = created_user.get('subscription_url', '')
         
-        # 5. Записать в локальную БД
+        # 5. Записать в локальную БД (только username и key, остальное из API)
         payment = PaymentService.create_payment(user_id, tariff['price'], tariff['months'])
         PaymentService.complete_payment(payment.id)
         UserService.update_subscription(
             user_id,
             username=username,
-            subscription_key=sub_key,
-            expire_date=expire_date
+            key=sub_key
         )
         
         # 6. Отправить сообщение об успехе

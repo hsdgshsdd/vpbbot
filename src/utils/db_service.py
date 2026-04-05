@@ -34,15 +34,14 @@ class UserService:
             db.close()
     
     @staticmethod
-    def update_subscription(telegram_id: int, key: str, expires_at: datetime):
-        """Обновить информацию о подписке"""
+    def update_subscription(telegram_id: int, username: str, key: str):
+        """Обновить информацию о подписке (только username и key, остальное из API)"""
         db = SessionLocal()
         try:
             user = db.query(User).filter(User.telegram_id == telegram_id).first()
             if user:
+                user.username = username
                 user.subscription_key = key
-                user.subscription_active = True
-                user.subscription_expires_at = expires_at
                 db.commit()
                 return user
         finally:

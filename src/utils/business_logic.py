@@ -96,22 +96,40 @@ class SubscriptionManager:
             }
     
     @staticmethod
-    def check_expiring_subscriptions():
-        """Проверить подписки, заканчивающиеся в ближайшее время"""
-        db = SessionLocal()
+    async def check_expiring_subscriptions():
+        """Проверить подписки, заканчивающиеся в ближайшее время (требует API)"""
         try:
-            # Поиск подписок, заканчивающихся в течение 7 дней
+            from src.api.marzneshin import api
+            
+            # Получить всех пользователей из API
+            users_data = await api.get_users(page=1, size=1000)
+            users = users_data.get('items', [])
+            
+            if not users:
+                return []
+            
+            # Фильтровать тех, у кого подписка заканчивается в течение 7 дней
             seven_days_later = datetime.utcnow() + timedelta(days=7)
+            expiring = []
             
-            users = db.query(User).filter(
-                User.subscription_active == True,
-                User.subscription_expires_at <= seven_days_later,
-                User.subscription_expires_at > datetime.utcnow()
-            ).all()
+            for user in users:
+                expire_date_str = user.get('expire_date')
+                if not expire_date_str:
+                    continue
+                
+                try:
+                    # Parse ISO format date
+                    expire_date = datetime.fromisoformat(expire_date_str.replace('Z', '+00:00'))
+                    
+                    if expire_date <= seven_days_later and expire_date > datetime.utcnow():
+                        expiring.append(user)
+                except:
+                    pass
             
-            return users
-        finally:
-            db.close()
+            return expiring
+        except Exception as e:
+            logger.error(f"Error checking expiring subscriptions: {e}")
+            return []
 
 
 class PromotionManager:
