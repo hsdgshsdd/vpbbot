@@ -34,6 +34,7 @@ from src.handlers.admin_commands import (
     cmd_adduser, cmd_userinfo, cmd_listusers, cmd_listservices, cmd_listnodes, cmd_stats, cmd_adminhelp
 )
 from src.handlers.admin_handlers import admin_start, admin_users, admin_users_list, admin_stats, admin_services
+from src.handlers.extended_handlers import admin_users_add
 from src.handlers.admin_extended_handlers import (
     # Node Management
     admin_nodes_list,
@@ -44,7 +45,6 @@ from src.handlers.admin_extended_handlers import (
     admin_add_host,
     admin_hosts_list,
     # User Management
-    admin_users_add,
     admin_user_actions,
     admin_user_stats,
     admin_disable_user,
