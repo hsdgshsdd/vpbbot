@@ -40,7 +40,7 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         admin_analytics,
     )
     from src.handlers.extended_handlers import (
-        referrals, download_config, regenerate_key, admin_users_add,
+        referrals, download_config, regenerate_key,
         admin_users_search, admin_services_add, show_faq, show_faq_answer
     )
     
@@ -125,8 +125,7 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await admin_users(update, context)
     elif callback_data == 'admin_users_list':
         await admin_users_list(update, context)
-    elif callback_data == 'admin_users_add':
-        await admin_users_add(update, context)
+    # admin_users_add теперь обработана ConversationHandler в main.py
     elif callback_data == 'admin_users_search':
         await admin_users_search(update, context)
     elif callback_data == 'admin_stats':

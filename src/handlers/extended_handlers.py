@@ -139,7 +139,7 @@ async def confirm_regenerate_key_old(update: Update, context: ContextTypes.DEFAU
 
 
 async def admin_users_add(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Добавить пользователя (admin)"""
+    """Добавить пользователя (admin) - запускает режим ввода ID"""
     if not await check_admin(update, context):
         return
     
@@ -162,8 +162,9 @@ async def admin_users_add(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode='HTML'
     )
     
-    # Запуск режима ввода
-    context.user_data['waiting_for_user_id'] = True
+    # Возвращаем состояние для ConversationHandler
+    from src.handlers.admin_user_input_handler import WAITING_FOR_USER_ID
+    return WAITING_FOR_USER_ID
 
 
 async def admin_users_search(update: Update, context: ContextTypes.DEFAULT_TYPE):

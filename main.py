@@ -16,6 +16,7 @@ from telegram.ext import (
     CommandHandler,
     CallbackQueryHandler,
     MessageHandler,
+    ConversationHandler,
     filters
 )
 from telegram.error import TelegramError
@@ -28,11 +29,11 @@ from src.handlers.user_handlers import (
 from src.handlers.payment_handler import (
     tariff_selected, handle_username_input, confirm_create_user
 )
-from src.handlers.admin_user_input_handler import handle_admin_input
+from src.handlers.admin_user_input_handler import handle_admin_input, cancel_admin_input, WAITING_FOR_USER_ID
 from src.handlers.admin_commands import (
     cmd_adduser, cmd_userinfo, cmd_listusers, cmd_listservices, cmd_listnodes, cmd_stats, cmd_adminhelp
 )
-from src.handlers.admin_handlers import admin_start
+from src.handlers.admin_handlers import admin_start, admin_users, admin_users_list, admin_stats, admin_services
 from src.handlers.admin_extended_handlers import (
     # Node Management
     admin_nodes_list,
@@ -43,6 +44,7 @@ from src.handlers.admin_extended_handlers import (
     admin_add_host,
     admin_hosts_list,
     # User Management
+    admin_users_add,
     admin_user_actions,
     admin_user_stats,
     admin_disable_user,
@@ -119,11 +121,23 @@ def main():
         filters.TEXT & ~filters.COMMAND, handle_username_input
     ))
     
-    # ============ Admin Input Handler ============
+    # ============ Admin Input Handler (ConversationHandler) ============
     # Обработчик для ввода ID пользователей администратором
-    application.add_handler(MessageHandler(
-        filters.TEXT & ~filters.COMMAND, handle_admin_input
-    ))
+    admin_input_conv_handler = ConversationHandler(
+        entry_points=[
+            CallbackQueryHandler(admin_users_add, pattern='^admin_users_add$'),
+        ],
+        states={
+            WAITING_FOR_USER_ID: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, handle_admin_input),
+            ]
+        },
+        fallbacks=[
+            CommandHandler('cancel', cancel_admin_input),
+            CallbackQueryHandler(cancel_admin_input, pattern='^admin_users$'),
+        ]
+    )
+    application.add_handler(admin_input_conv_handler)
     
     # ============ Node Management Handlers ============
     application.add_handler(CallbackQueryHandler(
