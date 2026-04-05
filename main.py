@@ -29,6 +29,9 @@ from src.handlers.payment_handler import (
     tariff_selected, handle_username_input, confirm_create_user
 )
 from src.handlers.admin_user_input_handler import handle_admin_input
+from src.handlers.admin_commands import (
+    cmd_adduser, cmd_userinfo, cmd_listusers, cmd_listservices, cmd_listnodes, cmd_stats, cmd_adminhelp
+)
 from src.handlers.admin_handlers import admin_start
 from src.handlers.admin_extended_handlers import (
     # Node Management
@@ -95,6 +98,15 @@ def main():
     
     # Команды только для администраторов
     application.add_handler(CommandHandler("admin", admin_start))
+    
+    # Администраторские команды
+    application.add_handler(CommandHandler("adduser", cmd_adduser))
+    application.add_handler(CommandHandler("userinfo", cmd_userinfo))
+    application.add_handler(CommandHandler("listusers", cmd_listusers))
+    application.add_handler(CommandHandler("listservices", cmd_listservices))
+    application.add_handler(CommandHandler("listnodes", cmd_listnodes))
+    application.add_handler(CommandHandler("stats", cmd_stats))
+    application.add_handler(CommandHandler("adminhelp", cmd_adminhelp))
     
     # ============ Payment Flow Handlers ============
     application.add_handler(CallbackQueryHandler(
