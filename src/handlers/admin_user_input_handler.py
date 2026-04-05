@@ -7,6 +7,8 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes, ConversationHandler
 from src.utils.permissions import check_admin
 from src.utils.db_service import UserService
+from src.api.marzneshin import api
+from datetime import datetime, timedelta
 import logging
 
 logger = logging.getLogger(__name__)
@@ -85,4 +87,97 @@ async def cancel_admin_input(update: Update, context: ContextTypes.DEFAULT_TYPE)
         await update.callback_query.answer("Вернулись в меню", show_alert=False)
     
     return ConversationHandler.END
+
+
+async def admin_user_create(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Создать подписку для пользователя в Marzneshin"""
+    query = update.callback_query
+    
+    # Парсим Telegram ID из callback_data
+    target_user_id = int(query.data.replace('admin_user_create:', ''))
+    
+    try:
+        await query.answer("⏳ Создаем подписку...", show_alert=False)
+        
+        # 1. Получить список сервисов
+        services_data = await api.get_services()
+        service_ids = []
+        
+        if services_data and 'items' in services_data and services_data['items']:
+            service_ids = [services_data['items'][0]['id']]
+        else:
+            raise Exception("Сервисы не найдены на Marzneshin")
+        
+        # 2. Auto-generate username from Telegram ID (not asking user)
+        username = f"user_{target_user_id}"
+        
+        # 3. Рассчитать параметры подписки (по умолчанию 1 месяц, 100GB)
+        expire_date = datetime.utcnow() + timedelta(days=30)
+        data_limit = 100 * 1024 * 1024 * 1024  # 100GB
+        
+        # 4. Создать пользователя в Marzneshin
+        logger.info(f"Admin creating user in Marzneshin: {username} (Telegram ID: {target_user_id})")
+        created_user = await api.create_user(
+            username=username,
+            expire_date=expire_date,
+            data_limit=data_limit,
+            services=service_ids
+        )
+        
+        if not created_user:
+            raise Exception("Не удалось создать пользователя в Marzneshin")
+        
+        # 5. Получить subscription key
+        sub_key = created_user.get('key', username)
+        
+        # 6. Записать в локальную БД
+        UserService.update_subscription(
+            target_user_id,
+            username=username,
+            key=sub_key
+        )
+        
+        # 7. Показать подтверждение
+        message = (
+            f"✅ <b>ПОДПИСКА СОЗДАНА</b>\n"
+            f"━━━━━━━━━━━━━━━━━━━━━\n\n"
+            f"<b>Telegram ID:</b> <code>{target_user_id}</code>\n"
+            f"<b>Логин (Marzneshin):</b> <code>{username}</code>\n"
+            f"<b>Ключ подписки:</b> <code>{sub_key[:30]}...</code>\n"
+            f"<b>Действует до:</b> {expire_date.strftime('%d.%m.%Y')}\n"
+            f"<b>Трафик:</b> 100 GB/месяц\n\n"
+            f"✉️ Пользователь получит сообщение с данными для подключения."
+        )
+        
+        buttons = [
+            [InlineKeyboardButton("◀️ Назад", callback_data='admin_users')]
+        ]
+        
+        await query.edit_message_text(
+            message,
+            reply_markup=InlineKeyboardMarkup(buttons),
+            parse_mode='HTML'
+        )
+        
+        logger.info(f"✅ User subscription created: {username} for Telegram ID {target_user_id}")
+        
+    except Exception as e:
+        logger.error(f"Error creating user subscription: {e}", exc_info=True)
+        
+        error_message = (
+            f"❌ <b>ОШИБКА ПРИ СОЗДАНИИ ПОДПИСКИ</b>\n\n"
+            f"Причина: {str(e)}\n\n"
+            f"❕ Попробуйте позже или проверьте Marzneshin."
+        )
+        
+        buttons = [
+            [InlineKeyboardButton("🔄 Попробовать снова", callback_data=f"admin_user_create:{target_user_id}")],
+            [InlineKeyboardButton("◀️ Назад", callback_data='admin_users')]
+        ]
+        
+        await query.edit_message_text(
+            error_message,
+            reply_markup=InlineKeyboardMarkup(buttons),
+            parse_mode='HTML'
+        )
 

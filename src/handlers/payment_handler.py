@@ -37,7 +37,7 @@ async def payment_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def tariff_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Обработка выбора тарифа → запрос username"""
+    """Обработка выбора тарифа → прямо к подтверждению"""
     query = update.callback_query
     user_id = update.effective_user.id
     
@@ -54,19 +54,37 @@ async def tariff_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
         'months': tariff['months'],
         'price': tariff['price']
     }
-    context.user_data['expecting_username'] = True
+    
+    # Auto-generate username from Telegram ID
+    username = f"user_{user_id}"
+    context.user_data['username'] = username
+    context.user_data['expecting_username'] = False
+    
+    # Сразу показываем подтверждение
+    expire_date = (datetime.utcnow() + timedelta(days=30 * tariff['months'])).strftime('%d.%m.%Y')
     
     message = (
-        "📝 <b>СОЗДАНИЕ ПОДПИСКИ</b>\n"
+        "✅ <b>ПОДТВЕРЖДЕНИЕ</b>\n"
         "━━━━━━━━━━━━━━━━━━━━━\n\n"
-        f"Выбран тариф: <b>{tariff['name']}</b>\n"
-        f"Стоимость: <code>{tariff['price']} ₽</code>\n\n"
-        "Введите имя пользователя для создания подписки:\n"
-        "<i>Допустимые: буквы, цифры, подчеркивание (3-32 символа)</i>\n\n"
-        "Например: <code>user_123</code>"
+        f"<b>Имя пользователя:</b> <code>{username}</code>\n"
+        f"<b>Тариф:</b> {tariff['name']}\n"
+        f"<b>Цена:</b> <code>{tariff['price']} ₽</code>\n"
+        f"<b>Срок:</b> {tariff['months']} мес.\n"
+        f"<b>Истекает:</b> {expire_date}\n\n"
+        "⚠️ <b>Важно:</b> После подтверждения пользователь будет создан\n"
+        "и сразу получит доступ к конфигурации."
     )
     
-    await query.edit_message_text(message, parse_mode='HTML')
+    buttons = [
+        [InlineKeyboardButton("✅ Подтвердить и оплатить", callback_data=f'confirm_create_user_{username}')],
+        [InlineKeyboardButton("❌ Отмена", callback_data='payment_menu')]
+    ]
+    
+    await query.edit_message_text(
+        message,
+        reply_markup=InlineKeyboardMarkup(buttons),
+        parse_mode='HTML'
+    )
 
 
 async def handle_username_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -177,16 +195,13 @@ async def confirm_create_user(update: Update, context: ContextTypes.DEFAULT_TYPE
         data_limit = int(data_limit_per_month * tariff['months'])
         
         # 3. Создать пользователя в Marzneshin
-        user_data = {
-            "username": username,
-            "expire_strategy": "fixed_date",
-            "expire_date": expire_date.isoformat(),
-            "data_limit": data_limit,
-            "service_ids": service_ids
-        }
-        
         logger.info(f"Creating user in Marzneshin: {username}")
-        created_user = await api.create_user(**user_data)
+        created_user = await api.create_user(
+            username=username,
+            expire_date=expire_date,
+            data_limit=data_limit,
+            services=service_ids
+        )
         
         if not created_user:
             raise Exception("Не удалось создать пользователя в системе")

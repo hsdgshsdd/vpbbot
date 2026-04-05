@@ -20,6 +20,7 @@ from telegram.ext import (
     filters
 )
 from telegram.error import TelegramError
+from telegram import BotCommand
 
 from src.config import config
 from src.models import init_db
@@ -87,6 +88,31 @@ def main():
     
     # Создание приложения
     application = Application.builder().token(config.BOT_TOKEN).build()
+    
+    # Установка команд для автодополнения (показываются при вводе /)
+    import asyncio
+    async def setup_commands():
+        """Установить команды для меню помощи"""
+        commands = [
+            BotCommand(command="start", description="🏠 Главное меню"),
+            BotCommand(command="account", description="👤 Просмотр подписки"),
+            BotCommand(command="update_keys", description="🔑 Управление ключами"),
+            BotCommand(command="payment", description="💳 Купить подписку"),
+            BotCommand(command="help", description="❓ Справка"),
+            BotCommand(command="admin", description="🔧 Админ-панель (только для админов)"),
+            BotCommand(command="adduser", description="➕ Добавить пользователя"),
+            BotCommand(command="userinfo", description="👤 Информация о пользователе"),
+            BotCommand(command="listusers", description="📋 Список пользователей"),
+            BotCommand(command="stats", description="📊 Статистика"),
+            BotCommand(command="cancel", description="❌ Отмена"),
+        ]
+        await application.bot.set_my_commands(commands)
+        logger.info("✅ Команды установлены для автодополнения")
+    
+    # Запустить setup асинхронно
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    loop.run_until_complete(setup_commands())
     
     # Добавление обработчиков команд
     logger.info("🔧 Регистрация обработчиков...")

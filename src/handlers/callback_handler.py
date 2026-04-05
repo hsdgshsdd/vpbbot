@@ -43,6 +43,7 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         referrals, download_config, regenerate_key,
         admin_users_search, admin_services_add, show_faq, show_faq_answer
     )
+    from src.handlers.admin_user_input_handler import admin_user_create
     
     query = update.callback_query
     await query.answer()
@@ -147,6 +148,10 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif callback_data.startswith('faq_'):
         faq_index = int(callback_data.split('_')[1])
         await show_faq_answer(update, context, faq_index)
+    
+    # ============ Admin User Creation ============
+    elif callback_data.startswith('admin_user_create:'):
+        await admin_user_create(update, context)
     
     # Утилиты
     elif callback_data == 'copy_referral_link':
