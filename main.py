@@ -28,6 +28,7 @@ from src.handlers.user_handlers import (
 from src.handlers.payment_handler import (
     tariff_selected, handle_username_input, confirm_create_user
 )
+from src.handlers.admin_user_input_handler import handle_admin_input
 from src.handlers.admin_handlers import admin_start
 from src.handlers.admin_extended_handlers import (
     # Node Management
@@ -104,6 +105,12 @@ def main():
     ))
     application.add_handler(MessageHandler(
         filters.TEXT & ~filters.COMMAND, handle_username_input
+    ))
+    
+    # ============ Admin Input Handler ============
+    # Обработчик для ввода ID пользователей администратором
+    application.add_handler(MessageHandler(
+        filters.TEXT & ~filters.COMMAND, handle_admin_input
     ))
     
     # ============ Node Management Handlers ============
