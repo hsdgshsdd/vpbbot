@@ -25,6 +25,9 @@ from src.models import init_db
 from src.handlers.user_handlers import (
     start, account, update_keys, payment_menu, help_command
 )
+from src.handlers.payment_handler import (
+    tariff_selected, handle_username_input, confirm_create_user
+)
 from src.handlers.admin_handlers import admin_start
 from src.handlers.admin_extended_handlers import (
     # Node Management
@@ -91,6 +94,17 @@ def main():
     
     # Команды только для администраторов
     application.add_handler(CommandHandler("admin", admin_start))
+    
+    # ============ Payment Flow Handlers ============
+    application.add_handler(CallbackQueryHandler(
+        tariff_selected, pattern='^tariff_'
+    ))
+    application.add_handler(CallbackQueryHandler(
+        confirm_create_user, pattern='^confirm_create_user_'
+    ))
+    application.add_handler(MessageHandler(
+        filters.TEXT & ~filters.COMMAND, handle_username_input
+    ))
     
     # ============ Node Management Handlers ============
     application.add_handler(CallbackQueryHandler(

@@ -8,7 +8,10 @@ logger = logging.getLogger(__name__)
 async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Универсальный обработчик callback'ов"""
     from src.handlers.user_handlers import (
-        account, update_keys, payment_menu, help_command, tariff_selected, confirm_payment, start
+        account, update_keys, payment_menu, help_command, start
+    )
+    from src.handlers.payment_handler import (
+        tariff_selected, confirm_create_user
     )
     from src.handlers.admin_handlers import (
         admin_start, admin_users, admin_users_list, admin_stats,
@@ -57,8 +60,8 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await help_command(update, context)
     elif callback_data.startswith('tariff_'):
         await tariff_selected(update, context)
-    elif callback_data.startswith('confirm_payment_'):
-        await confirm_payment(update, context)
+    elif callback_data.startswith('confirm_create_user_'):
+        await confirm_create_user(update, context)
     elif callback_data == 'referrals':
         await referrals(update, context)
     elif callback_data == 'download_config':
