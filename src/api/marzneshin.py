@@ -108,7 +108,8 @@ class MarzneshinAPI:
             
         return await self._make_request("GET", "/api/users", params=params)
     
-    async def create_user(self, username: str, expire_date: datetime = None, 
+    async def create_user(self, username: str, expire_strategy: str = "fixed_date",
+                         expire_date: datetime = None, 
                          data_limit: int = None, services: List[int] = None) -> Dict:
         """Создать пользователя"""
         if not expire_date:
@@ -119,6 +120,7 @@ class MarzneshinAPI:
         
         payload = {
             "username": username,
+            "expire_strategy": expire_strategy,
             "expire_date": expire_date.isoformat(),
             "services": services
         }
