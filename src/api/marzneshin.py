@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 
 class MarzneshinAPI:
-    """Полный клиент для взаимодействия с Marzneshin API (63 endpoints)"""
+    """Полный клиент для взаимодействия с Marzneshin API (70 endpoints, все методы из docs.txt)"""
     
     def __init__(self):
         self.base_url = config.API_BASE_URL
@@ -453,6 +453,37 @@ class MarzneshinAPI:
     async def get_users_stats(self) -> Dict:
         """Получить статистику пользователей"""
         return await self._make_request("GET", "/api/system/stats/users")
+    
+    # ============ ADMIN MANAGEMENT (MISSING) ============
+    
+    async def get_current_admin(self) -> Dict:
+        """Получить информацию о текущем администраторе"""
+        return await self._make_request("GET", "/api/admins/current")
+    
+    async def get_admin(self, username: str) -> Dict:
+        """Получить информацию об администраторе"""
+        return await self._make_request("GET", f"/api/admins/{username}")
+    
+    async def modify_admin(self, username: str, **kwargs) -> Dict:
+        """Изменить администратора"""
+        payload = {k: v for k, v in kwargs.items() if v is not None}
+        return await self._make_request("PUT", f"/api/admins/{username}", data=payload)
+    
+    async def get_admin_services(self, admin_username: str, page: int = 1, size: int = 50) -> Dict:
+        """Получить сервисы администратора"""
+        params = {"page": page, "size": size}
+        return await self._make_request("GET", f"/api/admins/{admin_username}/services", params=params)
+    
+    async def get_admin_users(self, admin_username: str, page: int = 1, size: int = 50) -> Dict:
+        """Получить пользователей администратора"""
+        params = {"page": page, "size": size}
+        return await self._make_request("GET", f"/api/admins/{admin_username}/users", params=params)
+    
+    # ============ USER SUBSCRIPTION (MISSING BASE VERSION) ============
+    
+    async def get_user_subscription(self, username: str, key: str) -> str:
+        """Получить подписку пользователя (базовая версия, обычно возвращает ссылку с конфигом)"""
+        return await self._make_request("GET", f"/sub/{username}/{key}")
 
 
 # Глобальный экземпляр API

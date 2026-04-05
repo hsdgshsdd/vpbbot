@@ -47,31 +47,42 @@ async def admin_users(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def admin_users_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Список пользователей"""
+    """Список пользователей из Marzneshin API"""
     if not await check_admin(update, context):
         return
     
     query = update.callback_query
     
-    db = SessionLocal()
     try:
-        users = db.query(User).limit(10).all()
+        # Читаем пользователей из API, а не из локальной БД!
+        users_data = await api.get_users(page=1, size=10)
+        users = users_data.get('items', []) if isinstance(users_data, dict) else []
         
-        message = "👥 <b>СПИСОК ПОЛЬЗОВАТЕЛЕЙ</b>\n━━━━━━━━━━━━━━━━━━━━━\n\n"
+        message = "👥 <b>СПИСОК ПОЛЬЗОВАТЕЛЕЙ (из Marzneshin)</b>\n━━━━━━━━━━━━━━━━━━━━━\n\n"
         
         if not users:
             message += "Нет пользователей в системе."
         else:
             for user in users:
-                status = "✅" if user.subscription_active else "❌"
+                username = user.get('username', 'N/A')
+                enabled = user.get('enabled', False)
+                status = "✅" if enabled else "❌"
+                expire_date = user.get('expire_date', 'N/A')
+                data_limit = user.get('data_limit', 0)
+                used_data = user.get('used_traffic', 0)
+                
+                # Форматирование data_limit в GB
+                data_limit_gb = data_limit / (1024**3) if data_limit else 0
+                used_data_gb = used_data / (1024**3) if used_data else 0
+                
                 message += (
-                    f"{status} <b>ID:</b> <code>{user.telegram_id}</code>\n"
-                    f"   <b>Юзер:</b> {user.username or 'N/A'}\n"
-                    f"   <b>Ключ:</b> {user.subscription_key[:20] + '...' if user.subscription_key else 'N/A'}\n"
-                    f"   <b>До:</b> {user.subscription_expires_at.strftime('%d.%m.%Y') if user.subscription_expires_at else 'N/A'}\n\n"
+                    f"{status} <b>{username}</b>\n"
+                    f"   <b>Трафик:</b> {used_data_gb:.2f}GB / {data_limit_gb:.2f}GB\n"
+                    f"   <b>Истекает:</b> {expire_date[:10] if isinstance(expire_date, str) else 'N/A'}\n\n"
                 )
-    finally:
-        db.close()
+    except Exception as e:
+        logger.error(f"Error fetching users from API: {e}")
+        message = f"❌ <b>Ошибка при загрузке пользователей</b>\n\n{str(e)[:100]}"
     
     buttons = [
         [InlineKeyboardButton("➕ Добавить", callback_data='admin_users_add')],
@@ -87,36 +98,58 @@ async def admin_users_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def admin_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Статистика"""
+    """Статистика из Marzneshin API"""
     if not await check_admin(update, context):
         return
     
     query = update.callback_query
     
-    db = SessionLocal()
     try:
-        total_users = db.query(User).count()
-        active_subs = db.query(User).filter(User.subscription_active == True).count()
+        # Читаем статистику из API, а не из локальной БД!
+        users_stats = await api.get_users_stats()
         
-        # Расчет дохода
-        completed_payments = db.query(Payment).filter(Payment.status == 'completed').all()
-        total_revenue = sum(p.amount for p in completed_payments)
+        total_users = users_stats.get('total_users', 0)
+        active_users = users_stats.get('active_users', 0)
+        expired_users = users_stats.get('expired_users', 0)
         
-        # Доход за месяц
-        month_ago = datetime.utcnow() - timedelta(days=30)
-        monthly_revenue = sum(p.amount for p in completed_payments if p.completed_at and p.completed_at > month_ago)
+        # Для дохода остаемся с локальной БД (платежи ведутся локально)
+        db = SessionLocal()
+        try:
+            completed_payments = db.query(Payment).filter(Payment.status == 'completed').all()
+            total_revenue = sum(p.amount for p in completed_payments)
+            
+            month_ago = datetime.utcnow() - timedelta(days=30)
+            monthly_revenue = sum(p.amount for p in completed_payments if p.completed_at and p.completed_at > month_ago)
+        finally:
+            db.close()
         
         stats = {
             'total_users': total_users,
-            'active_subscriptions': active_subs,
+            'active_subscriptions': active_users,
+            'expired_users': expired_users,
             'monthly_revenue': monthly_revenue,
             'total_revenue': total_revenue
         }
         
-    finally:
-        db.close()
+    except Exception as e:
+        logger.error(f"Error fetching stats: {e}")
+        stats = {
+            'total_users': 'Ошибка',
+            'active_subscriptions': 'Ошибка',
+            'expired_users': 'Ошибка',
+            'monthly_revenue': 0,
+            'total_revenue': 0
+        }
     
-    message = MessageFormatter.admin_stats_message(stats)
+    message = (
+        "📊 <b>СТАТИСТИКА</b>\n"
+        "━━━━━━━━━━━━━━━━━━━━━\n\n"
+        f"👥 <b>Всего пользователей:</b> {stats.get('total_users', 0)}\n"
+        f"✅ <b>Активных подписок:</b> {stats.get('active_subscriptions', 0)}\n"
+        f"❌ <b>Истекших подписок:</b> {stats.get('expired_users', 0)}\n\n"
+        f"💰 <b>Заработано за месяц:</b> {stats.get('monthly_revenue', 0)} ₽\n"
+        f"💳 <b>Всего заработано:</b> {stats.get('total_revenue', 0)} ₽"
+    )
     
     buttons = [
         [InlineKeyboardButton("📊 Обновить", callback_data='admin_stats')],
